@@ -8,14 +8,23 @@
 //-------------------------------------------------------------------------------
 
 _start:
-    // mov x0, 0x86A0, lsl #0
-    // mov x0, 0x0001, lsl #0
-
-    movz x0, 0xFFFF, lsl #0
-    movk x0, 0x0001, lsl #16
-
+//------------------------------------------------
+    // One Hundred Point Trial:
+    // movz x0, #100, lsl #0 
+    //-------------------------
+    // Ten Thousand Point Trial:
+    // movz x0, #10000, lsl #0 
+    //-------------------------
+    // One Hundred Thousand Point Trial:
+    // movz X0, 0x86A0, lsl #0
+    // movk X0, 0x0001, lsl #16
+    //-------------------------
+    // One Million Point Trial:
+    movz X0, 0x4240, lsl #0
+    movk X0, 0x000F, lsl #16
+    //-------------------------
+//------------------------------------------------
     ldr x8, =count
-
     str x0, [x8, 0]
 
     movz x0, #65535, lsl #0 // build a constant that is 7FFF FFFF FFFF FFFF
@@ -27,26 +36,22 @@ _start:
     str d1, [x0, 0]     // Store this constant in the divisor variable
 
 // Process given to generate random #'s
-
 //**************************************************************************
-
 //* The main addition to this program is the following:
-//* 1. Upon one complete run of 'repeat', there will be a set of 10 random float point numbers from [-1,1]
-//* 2. These numbers will have to be verified as falling within the unit circle ( the range [-1.1] is a square, we need to truncate the four corners)
+//* 1. Upon one complete run of 'repeat', there will be a set of two random float point numbers from [-1,1]
+//* 2. These numbers will have to be verified as falling within the unit circle ( the range [-1.1] is a square, x^2 + y^2 <= 1 is within the unit circle within that square)
 //*             Area of square = l * w = 2 * 2 = 4 units^2
 //*             Area of unit circle = (pi)
 //*
 //*             The equation for the unit circle is: x^2+y^2=1
-//*             Therefore, checking if a point is within the unit circle involves checking if x^2 + y^2 <= 1 (From circle unit circle equation)
-//*
+//*             Therefore, checking if a point is within the unit circle involves checking if x^2 + y^2 <= 1 (From unit circle equation)
 //* 3. For any valid point within the unit circle, add it to a running sum alongside a counter of how many valid points.
 //*             * Regardless of outcome, a counter of how many square points will always be incremented (sincce each rand number is from [-1,1].
-//* 4. After each point, move onto the next available point from the function run ONLY so long as the max iterations of points is not exceeded.
+//* 4. After each point, move onto the next available point from the function; run ONLY so long as the max iterations of points is not exceeded.
 //* 5. The final calculation, from the areas previously claculated, will be:
 //*             pi = 4 * (points inside of the circle) / (total number of points)
-
 //****************************************************************************
-
+// Define the counter for total points (square) and points within circle (unit circle)
 mov x14, #0 // x14 = # of total points
 mov x15, #0 // x15 = # of points inside circle
 
@@ -93,11 +98,11 @@ repeat:
     add x14, x14, x12 //increment total num of points by 1
 
     fcmp d5, d6
-    b.gt repeat
+    b.gt skip
 
     add x15, x15, x12 // increment points within circle by 1
 
-
+    skip:
  //   ldr x0, =string // Load format string for printf
  //   ldr x8, =var // get address of variables
  //   ldr x2, [x8, 0] // Paramter 2 - the floating point version of the number
@@ -117,8 +122,9 @@ _calculate:
     scvtf d2, x15 // convert # of points in circle to floating point
     scvtf d3, x14 // convert # of points outside circle to floating point
     fmul d0, d0, d2 // do 4 * # points in circle
-    fdiv d0, d0, d3 // final calculations of pi
+    fdiv d0, d0, d3 // final calculations of pi ( 4 * # points in circle / # total points)
 
+    // Print value
     ldr x0, =string
     ldr x8, =var
     str d0, [x8, 0]
